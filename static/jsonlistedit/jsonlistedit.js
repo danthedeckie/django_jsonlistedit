@@ -14,6 +14,8 @@
     var default_config = {
         debug: false,
 
+        defaultvalues: {},
+
         templateFunction: quicktemplate,
 
         listElement: 'div',
@@ -25,25 +27,23 @@
     // Helper functions:
     //
 
-    function makeconfig(specified) {
-        /* basic shallow copy function, copying first default_config, then the specified config) */
-        var config = {},
-            i;
-        for (i in default_config) {
-            if (default_config.hasOwnProperty(i)) {
-                config[i] = default_config[i];
+    function shallowCombine() {
+        /* shallow copy from multiple objects into one, and return it */
+        var newobj = {},
+            objid, i;
+        for (objid=0;objid<arguments.length;objid++) {
+            for (i in arguments[objid]) {
+                if (arguments[objid].hasOwnProperty(i)) {
+                    newobj[i] = arguments[objid][i];
+                }
             }
         }
-        for (i in specified) {
-            if (specified.hasOwnProperty(i)) {
-                config[i] = specified[i];
-            }
-        }
-        console.log(config);
-        return config;
+        return newobj;
     }
 
     function findParentBefore(current, stopat) {
+        /* work your way up the DOM tree,
+           until you find the node before (inside) stopat. */
         while (current.parentNode !== stopat) {
             current = current.parentNode;
             if (current === null) {
@@ -61,12 +61,7 @@
         var str = listobject.config.templates[obj._type || 'default'],
             k;
 
-        for (k in obj) {
-            if (obj.hasOwnProperty(k)) {
-                str = str.replace('$$' + k, '<input name="' + k + '" value="' + obj[k] + '" form="NOSUBMIT">');
-                str = str.replace('$' + k, obj[k]);
-            }
-        }
+        str = str.replace(/\$\$(\w*)/g, '<input name="$1" class="jsonlistauto">');
 
         return str;
     }
@@ -87,7 +82,7 @@
 
             if (!item) { return false; }
 
-            items = container_element.children; //container_element.querySelectorAll('.item');
+            items = container_element.children;
 
             for (var _counter=0; _counter<items.length; _counter++) {
                 items[_counter].index = _counter;
@@ -161,7 +156,7 @@
     var JSONListEdit = function (textarea, config) {
         var that=this;
         this.textarea = textarea;
-        this.config = makeconfig(config);
+        this.config = shallowCombine(default_config, config);
 
         if (this.config.domNode) {
             this.el = this.config.domNode;
@@ -178,7 +173,7 @@
         this.connectButtons();
 
         if (this.config.debug !== true) {
-                textarea.style.display = 'none';
+            textarea.style.display = 'none';
         }
 
         Sortable.create(this.el, {
@@ -213,15 +208,45 @@
 
     JSONListEdit.prototype.AddDOMRow = function (obj, innerHTML) {
         var div = document.createElement(this.config.itemElement),
-            editor = this;
-        div.className = 'item ' + (obj._type || 'default');
+            mytype = obj._type || 'default',
+            editor = this,
+            inputs,
+            i,
+            myvalue;
+
+        div.className = 'item ' + mytype;
         div.innerHTML = innerHTML;
         div.draggable = true;
 
+        // Update the values of all input boxes to have the current value from the obj:
+
+        inputs = div.querySelectorAll('.jsonlistauto');
+
+        for (i=0;i<inputs.length;i++) {
+            myvalue = obj[inputs[i].name];
+            if (myvalue === undefined){
+                if (editor.config.defaultvalues[mytype]) {
+                    myvalue = editor.config.defaultvalues[mytype][inputs[i].name]
+                }
+            }
+            if (myvalue === undefined) {
+                myvalue = '';
+            }
+
+            inputs[i].value = myvalue;
+        }
+
+        // And whenever those values change in the DOM, update the obj:
+
         div.onchange = function (evt) {
+            if (editor.config.onItemInputChange) {
+                editor.config.onItemInputChange(evt, editor);
+            }
             obj[evt.target.name] = evt.target.value;
             editor.updateTextArea();
         }
+
+        // Make 'delete' buttons work:
 
         div.onclick = function (evt) {
             if (evt.target.classList.contains('deleteitem')) {
@@ -250,6 +275,9 @@
     JSONListEdit.prototype.addItem = function (data) {
         this.list.push(data);
         this.updateTextArea();
+        if (this.config.preAddItem) {
+            data = this.config.preAddItem(data, this);
+        }
         this.AddDOMRow(data, this.config.templateFunction(data, this));
         this.config.onAdd && this.config.onAdd(data, this);
     }

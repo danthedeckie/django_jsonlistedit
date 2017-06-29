@@ -41,15 +41,30 @@ class JSONListEditWidget(forms.Widget):
         css = {'all': ('jsonlistedit/jsonlistedit.css',)}
         js = ('jsonlistedit/jsonlistedit.js',)
 
-    def __init__(self, attrs=None, config={}):
+    def __init__(self, attrs=None, template=None, config={}):
         self.config = config
+        if template:
+            self.template_name = template
+        if not hasattr(self, 'template_name'):
+            self.template_name = "jsonlisteditwidget_warning.html"
         return super().__init__(attrs=attrs)
+    
+    def format_value(self, value):
+        return json.dumps(value)
 
-    def render(self, name, value, attrs=None, renderer=None):
+    def get_context(self, name, value, attrs):
+        context = super().get_context(name, value, attrs)
+        context['widget']['config'] = self.config #mark_safe(json.dumps(self.config))
+        return context
+
+    def render2(self, name, value, attrs=None, renderer=None):
         # Rather than use a separate django or jinja template, this just does it here.
         # Probably a bad idea.  But seems to work for something this simple for now...
 
         formatstr, vals = make_textarea_tmpl(name, attrs, value)
+
+        if 'beforeHTML' in self.config:
+            formatstr.insert(0, self.config['beforeHTML'])
 
         script = '''
         <script>new JSONListEdit(document.getElementById('{}'), {});</script>
@@ -57,6 +72,9 @@ class JSONListEditWidget(forms.Widget):
 
         vals.append(attrs['id'])
         vals.append(mark_safe(json.dumps(self.config)))
+
+        if 'afterHTML' in self.config:
+            formatstr.append(self.config['afterHTML'])
 
         return format_html(''.join(formatstr) + script, *vals)
 
@@ -68,9 +86,7 @@ class JSONListEditFormField(forms.Field):
         defaults = {}# {'widget': JSONListEditWidget}
         defaults.update(kwargs)
         defaults.pop('max_length')
-        defaults['widget'] = JSONListEditWidget(config=defaults.pop('config'))
-        print(defaults['blahblah'])
-        defaults.pop('blahblah')
+        defaults['widget'] = JSONListEditWidget(template=defaults.pop('template'), config=defaults.pop('config'))
 
         return super().__init__(**defaults)
 
@@ -82,8 +98,9 @@ class JSONListEditFormField(forms.Field):
 class JSONListEditField(models.TextField):
     description = 'A List of things, stored in JSON'
 
-    def __init__(self, *args, config=None, **kwargs):
+    def __init__(self, *args, template=None, config=None, **kwargs):
         self.config = config
+        self.template = template
         super().__init__(*args, **kwargs)
 
     def parse(self, text):
@@ -111,4 +128,4 @@ class JSONListEditField(models.TextField):
     def formfield(self, **kwargs):
         defaults = {'form_class': JSONListEditFormField}
         defaults.update(kwargs)
-        return super().formfield(**defaults, blahblah=22, config=self.config)
+        return super().formfield(**defaults, template=self.template, config=self.config)

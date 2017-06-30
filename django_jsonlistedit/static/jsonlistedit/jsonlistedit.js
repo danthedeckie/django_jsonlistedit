@@ -196,11 +196,26 @@
     }
 
     JSONListEdit.prototype.LoadTextArea = function () {
+        var default_data = [];
+
+        if (!this.textarea.value) {
+            if (this.config.arrayname) {
+                default_data = {};
+                default_data[this.config.arrayname] = [];
+            }
+	    this.textarea.value = JSON.stringify(default_data);
+        }
+
         try {
-            this.data = JSON.parse(this.textarea.value) || [];
+            this.data = JSON.parse(this.textarea.value);
+            if ((this.data === undefined)||(this.data === null)) {
+                this.textarea.value = '';
+                return this.LoadTextArea();
+            }
             this.list = this.data[this.config.arrayname] || this.data;
         } catch (err) {
             this.el.innerHTML = '<div class="error">' + err + '</div>';
+            this.config.debug = true;
             this.data = {};
             this.list = [];
         }

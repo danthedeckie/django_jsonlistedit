@@ -197,7 +197,7 @@
 
     JSONListEdit.prototype.LoadTextArea = function () {
         try {
-            this.data = JSON.parse(this.textarea.value);
+            this.data = JSON.parse(this.textarea.value) || [];
             this.list = this.data[this.config.arrayname] || this.data;
         } catch (err) {
             this.el.innerHTML = '<div class="error">' + err + '</div>';
@@ -273,13 +273,14 @@
     }
 
     JSONListEdit.prototype.addItem = function (data) {
+	var newEl=null;
         this.list.push(data);
         this.updateTextArea();
         if (this.config.preAddItem) {
             data = this.config.preAddItem(data, this);
         }
-        this.AddDOMRow(data, this.config.templateFunction(data, this));
-        this.config.onAdd && this.config.onAdd(data, this);
+        newEl = this.AddDOMRow(data, this.config.templateFunction(data, this));
+        this.config.onAdd && this.config.onAdd(data, newEl, this);
     }
 
     JSONListEdit.prototype.delete = function (obj, rowdiv) {

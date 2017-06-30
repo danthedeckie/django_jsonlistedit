@@ -7,33 +7,6 @@ from django import forms
 from django.utils.translation import ugettext_lazy as _
 from django.utils.html import format_html, mark_safe
 
-def make_textarea_tmpl(name, attrs, value):
-    """
-        Given the (name, attributes, value) tuple that a Widget.render is given,
-        return a list of "{}" type format strings which can be ''.join-ed together,
-        and a list of values to populate it, to produce a full <textarea> HTML input.
-        This will eventually get handed to the 'format_html' django util.
-    """
-    attrs['autocomplete'] = 'false'
-    if not 'debug' in attrs:
-        attrs['debug'] = False
-
-    formatstr = ['<textarea name="{}" ']
-    values = [name]
-    #l += list(chain(*attrs.items()))
-    for k, v in attrs.items():
-        values.append(k)
-        if v == True:
-            formatstr.append('{} ')
-        else:
-            values.append(v)
-            formatstr.append('{}="{}" ')
-
-    formatstr.append('>{}</textarea>')
-    values.append(json.dumps(value) if value is not None else '')
-
-    return formatstr, values
-
 # This Draws the widget into HTML:
 class JSONListEditWidget(forms.Widget):
 
@@ -52,31 +25,18 @@ class JSONListEditWidget(forms.Widget):
     def format_value(self, value):
         return json.dumps(value)
 
+    def value_from_datadict(self, data, files, name):
+        raw = data.get(name)
+        if raw:
+            return json.loads(raw)
+        else:
+            return None
+
+
     def get_context(self, name, value, attrs):
         context = super().get_context(name, value, attrs)
         context['widget']['config'] = self.config #mark_safe(json.dumps(self.config))
         return context
-
-    def render2(self, name, value, attrs=None, renderer=None):
-        # Rather than use a separate django or jinja template, this just does it here.
-        # Probably a bad idea.  But seems to work for something this simple for now...
-
-        formatstr, vals = make_textarea_tmpl(name, attrs, value)
-
-        if 'beforeHTML' in self.config:
-            formatstr.insert(0, self.config['beforeHTML'])
-
-        script = '''
-        <script>new JSONListEdit(document.getElementById('{}'), {});</script>
-        '''
-
-        vals.append(attrs['id'])
-        vals.append(mark_safe(json.dumps(self.config)))
-
-        if 'afterHTML' in self.config:
-            formatstr.append(self.config['afterHTML'])
-
-        return format_html(''.join(formatstr) + script, *vals)
 
 
 # This tells Django to use the above widget in all forms.

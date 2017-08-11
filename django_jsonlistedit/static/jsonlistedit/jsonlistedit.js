@@ -6,7 +6,7 @@
 
     // Temporary hack for quick dev:
     var default_templates = {
-            "default": '<div class="handle">☰</div><label>Name: $$name</label>, <label>price <input name="price" value="$price" type="number"/></label>',
+            "default": '<div class="handle">☰</div><label>Name: $$name</label>, <label>price <input name="price" value="$price" type="number" form="NOSUBMIT"/></label>',
             "section": '$$name',
             "notes": '$$name'
         };
@@ -61,7 +61,7 @@
         var str = listobject.config.templates[obj._type || 'default'],
             k;
 
-        str = str.replace(/\$\$(\w*)/g, '<input name="$1" class="jsonlistauto">');
+        str = str.replace(/\$\$(\w*)/g, '<input name="$1" class="jsonlistauto" form="NOSUBMIT">');
 
         return str;
     }
@@ -249,6 +249,7 @@
             }
 
             inputs[i].value = myvalue;
+            inputs[i].form = "NOSUBMIT";
         }
 
         // And whenever those values change in the DOM, update the obj:

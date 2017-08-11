@@ -249,7 +249,6 @@
             }
 
             inputs[i].value = myvalue;
-            inputs[i].form = "NOSUBMIT";
         }
 
         // And whenever those values change in the DOM, update the obj:

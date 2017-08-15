@@ -53,6 +53,16 @@
         return current;
     }
 
+    function isInsideClass(el, classname) {
+        /* is an element inside another element with a certain class... */
+        while(el !== document) {
+            if (el.classList.contains(classname)) {
+                return el;
+            }
+            el = el.parentNode;
+        }
+    }
+
     function quicktemplate(obj, listobject) {
         /* Quick Hacky template function, for generating 'rows' in the list.
          * $$<var> is replaced by an inputbox with that name, which pulls in the value from the object.
@@ -76,11 +86,28 @@
         var items = [];
         var dragged_item = null;
         var drop_index = null;
+        var no_drag_now = false;
+
+        container_element.addEventListener('mousedown', function(evt) {
+            if (options.handle && !isInsideClass(evt.target, options.handle)) {
+                no_drag_now = true;
+                findParentBefore(evt.target, container_element).draggable = false;
+            } else {
+                no_drag_now = false;
+            }
+        });
+
+        container_element.addEventListener('mouseup', function(evt) {
+            if (no_drag_now) {
+                findParentBefore(evt.target, container_element).draggable = true;
+            }
+        });
 
         container_element.addEventListener('dragstart', function (evt) {
             var item = findParentBefore(evt.target, container_element);
 
             if (!item) { return false; }
+            if (no_drag_now) {evt.preventDefault();return false; }
 
             items = container_element.children;
 
@@ -101,6 +128,7 @@
         container_element.addEventListener('dragover', function (evt) {
             var item = findParentBefore(evt.target, container_element);
             var before = null;
+            if (no_drag_now) { return false; }
 
             evt.dataTransfer.dropEffect = 'move';
 
@@ -140,6 +168,7 @@
             var item = findParentBefore(evt.target, container_element);
 
             if (!item) {return false;}
+            if (no_drag_now) { return false; }
 
             item.classList.remove('moving');
             if(dragged_item.index < drop_index) {
@@ -182,7 +211,7 @@
                 that.list.splice(evt.newIndex, 0, x[0]);
                 that.updateTextArea();
             },
-            "handle": ".handle",
+            "handle": "handle",
         });
 
 
@@ -249,6 +278,8 @@
             }
 
             inputs[i].value = myvalue;
+            inputs[i].draggable = false;
+
         }
 
         // And whenever those values change in the DOM, update the obj:

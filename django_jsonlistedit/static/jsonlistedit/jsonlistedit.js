@@ -256,6 +256,7 @@
     JSONListEdit.prototype.AddDOMRow = function (obj, innerHTML) {
         var div = document.createElement(this.config.itemElement),
             mytype = obj._type || 'default',
+            delbuttons,
             editor = this,
             inputs,
             i,
@@ -269,27 +270,30 @@
 
         inputs = div.querySelectorAll('.jsonlistauto');
 
-        if (!editor.textarea.disabled) {
+
+        for (i=0;i<inputs.length;i++) {
+            myvalue = obj[inputs[i].name];
+            if (myvalue === undefined){
+                if (editor.config.defaultvalues[mytype]) {
+                    myvalue = editor.config.defaultvalues[mytype][inputs[i].name]
+                    obj[inputs[i].name] = myvalue;
+                }
+            }
+            if (myvalue === undefined) {
+                myvalue = '';
+            }
+
+            inputs[i].value = myvalue;
+            inputs[i].draggable = false;
+
+        }
+
+        if (editor.textarea.disabled) {
             for (i=0;i<inputs.length;i++) {
                 inputs[i].disabled = true;
             }
-		} else {
-
-            for (i=0;i<inputs.length;i++) {
-                myvalue = obj[inputs[i].name];
-                if (myvalue === undefined){
-                    if (editor.config.defaultvalues[mytype]) {
-                        myvalue = editor.config.defaultvalues[mytype][inputs[i].name]
-                    }
-                }
-                if (myvalue === undefined) {
-                    myvalue = '';
-                }
- 
-                inputs[i].value = myvalue;
-                inputs[i].draggable = false;
- 
-            }
+            
+        } else {
  
             // And whenever those values change in the DOM, update the obj:
  

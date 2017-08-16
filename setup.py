@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='django_jsonlistedit',
-    version='0.0.5',
+    version='0.0.6',
     packages=['django_jsonlistedit'],
     license='MIT',
     include_package_data=True,

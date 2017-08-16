@@ -205,14 +205,17 @@
             textarea.style.display = 'none';
         }
 
-        Sortable.create(this.el, {
-            "onEnd": function (evt) {
-                var x = that.list.splice(evt.oldIndex, 1);
-                that.list.splice(evt.newIndex, 0, x[0]);
-                that.updateTextArea();
-            },
-            "handle": "handle",
-        });
+        if (!textarea.disabled) {
+
+            Sortable.create(this.el, {
+                "onEnd": function (evt) {
+                    var x = that.list.splice(evt.oldIndex, 1);
+                    that.list.splice(evt.newIndex, 0, x[0]);
+                    that.updateTextArea();
+                },
+                "handle": "handle",
+            });
+        }
 
 
         return this;
@@ -266,39 +269,46 @@
 
         inputs = div.querySelectorAll('.jsonlistauto');
 
-        for (i=0;i<inputs.length;i++) {
-            myvalue = obj[inputs[i].name];
-            if (myvalue === undefined){
-                if (editor.config.defaultvalues[mytype]) {
-                    myvalue = editor.config.defaultvalues[mytype][inputs[i].name]
+        if (!editor.textarea.disabled) {
+            for (i=0;i<inputs.length;i++) {
+                inputs[i].disabled = true;
+            }
+		} else {
+
+            for (i=0;i<inputs.length;i++) {
+                myvalue = obj[inputs[i].name];
+                if (myvalue === undefined){
+                    if (editor.config.defaultvalues[mytype]) {
+                        myvalue = editor.config.defaultvalues[mytype][inputs[i].name]
+                    }
+                }
+                if (myvalue === undefined) {
+                    myvalue = '';
+                }
+ 
+                inputs[i].value = myvalue;
+                inputs[i].draggable = false;
+ 
+            }
+ 
+            // And whenever those values change in the DOM, update the obj:
+ 
+            div.onchange = function (evt) {
+                if (editor.config.onItemInputChange) {
+                    editor.config.onItemInputChange(evt, editor);
+                }
+                obj[evt.target.name] = evt.target.value;
+                editor.updateTextArea();
+            }
+ 
+            // Make 'delete' buttons work:
+ 
+            div.onclick = function (evt) {
+                if (evt.target.classList.contains('deleteitem')) {
+                    editor.delete(obj, div)
                 }
             }
-            if (myvalue === undefined) {
-                myvalue = '';
-            }
-
-            inputs[i].value = myvalue;
-            inputs[i].draggable = false;
-
-        }
-
-        // And whenever those values change in the DOM, update the obj:
-
-        div.onchange = function (evt) {
-            if (editor.config.onItemInputChange) {
-                editor.config.onItemInputChange(evt, editor);
-            }
-            obj[evt.target.name] = evt.target.value;
-            editor.updateTextArea();
-        }
-
-        // Make 'delete' buttons work:
-
-        div.onclick = function (evt) {
-            if (evt.target.classList.contains('deleteitem')) {
-                editor.delete(obj, div)
-            }
-        }
+		}
 
         this.el.appendChild(div);
         return div; 

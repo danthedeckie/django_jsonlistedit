@@ -82,6 +82,14 @@ class JSONListEditField(models.TextField):
             return value
         return self.parse(value)
 
+    def value_to_string(self, obj):
+        if obj is not None:
+            val = getattr(obj, self.attname)
+        else:
+            val = self.get_default()
+
+        return json.dumps(val)
+
     def get_prep_value(self, value):
         return json.dumps(value)
 
